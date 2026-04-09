@@ -65,6 +65,8 @@
     .disclaimer { font-size: 11px; color: #888780; margin-top: 12px; line-height: 1.5; }
     .error-card { border-color: #f09595 !important; }
     .error-card h2 { color: #A32D2D; }
+    .retry-btn { margin-top: 0.75rem; height: 40px; padding: 0 1.25rem; background: #185FA5; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; margin-right: 8px; }
+    .file-info { font-size: 11px; color: #3B6D11; margin-top: 6px; }
     @media (max-width: 480px) {
       .style-grid { grid-template-columns: repeat(2, 1fr); }
       .form-grid { grid-template-columns: 1fr; }
@@ -94,15 +96,16 @@
   <div id="step1">
     <div class="card">
       <h2>Upload your home photo</h2>
-      <p>Use a clear front-facing photo where the roof is visible.</p>
+      <p>Use a clear front-facing photo where the roof is visible. Best results with daylight photos taken from street level.</p>
       <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
         <div id="uploadPlaceholder">
           <div class="upload-icon">🏠</div>
           <div class="upload-text">Click to upload your home photo</div>
-          <div class="upload-sub">JPG or PNG, up to 10MB</div>
+          <div class="upload-sub">JPG or PNG — will be auto-resized for best results</div>
         </div>
         <img id="previewImg" style="display:none;" alt="Your home" />
       </div>
+      <div id="fileInfo" class="file-info" style="display:none;"></div>
       <input type="file" id="fileInput" accept="image/jpeg,image/png" style="display:none;" onchange="handleUpload(event)" />
     </div>
     <button class="btn-primary" id="step1Btn" disabled onclick="goTo(2)">Continue — choose your roof →</button>
@@ -178,18 +181,30 @@
         <div><div class="section-label" style="margin-bottom:6px;">After</div><img id="afterImg" alt="After" /></div>
       </div>
       <div class="config-box" id="resultSummary"></div>
-      <p style="font-size:13px; color:#5f5e5a; line-height:1.6;">A roofing specialist will reach out to <strong id="resultEmail"></strong> with a personalized quote. Questions? Call us anytime.</p>
+      <p style="font-size:13px; color:#5f5e5a; line-height:1.6; margin-bottom:1rem;">A roofing specialist will reach out to <strong id="resultEmail"></strong> with a personalized quote.</p>
+      <button class="btn-back" onclick="goTo(1)" style="font-size:13px;">Try another photo</button>
     </div>
     <div class="card error-card" id="errorCard" style="display:none;">
       <h2>Something went wrong</h2>
-      <p id="errorMsg" style="margin-bottom:1rem;">Please try again.</p>
+      <p id="errorMsg" style="margin-bottom:1rem; font-size:14px; color:#5f5e5a;"></p>
+      <button class="retry-btn" onclick="submit()">Try again</button>
       <button class="btn-back" onclick="goTo(1)">Start over</button>
     </div>
   </div>
 </div>
 
 <script>
-  const S = { step: 1, imageFile: null, imageDataUrl: null, style: null, color: null, lead: {} };
+  const S = {
+    step: 1,
+    imageFile: null,
+    imageDataUrl: null,
+    imagePreviewUrl: null,
+    imageWidth: 1024,
+    imageHeight: 768,
+    style: null,
+    color: null,
+    lead: {}
+  };
 
   function goTo(n) {
     for (let i = 1; i <= 4; i++) {
@@ -199,24 +214,62 @@
       if (i < 4) document.getElementById('line' + i).className = 'step-line' + (i < n ? ' done' : '');
     }
     S.step = n;
-    if (n === 3) document.getElementById('configBox').innerHTML = `<strong>Style:</strong> ${S.style} &nbsp;|&nbsp; <strong>Color:</strong> ${S.color}`;
+    if (n === 3) document.getElementById('configBox').innerHTML =
+      `<strong>Style:</strong> ${S.style} &nbsp;|&nbsp; <strong>Color:</strong> ${S.color}`;
   }
 
-  function handleUpload(e) {
+  function resizeImage(file, maxSize) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxSize || height > maxSize) {
+          if (width > height) { height = Math.round(height * maxSize / width); width = maxSize; }
+          else { width = Math.round(width * maxSize / height); height = maxSize; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        URL.revokeObjectURL(url);
+        resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.88), width, height });
+      };
+      img.src = url;
+    });
+  }
+
+  async function handleUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      alert('Please upload a JPG or PNG image.');
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      alert('Image is too large. Please use a photo under 20MB.');
+      return;
+    }
     S.imageFile = file;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      S.imageDataUrl = ev.target.result;
+    const previewReader = new FileReader();
+    previewReader.onload = ev => {
+      S.imagePreviewUrl = ev.target.result;
       document.getElementById('uploadZone').classList.add('has-image');
       document.getElementById('uploadPlaceholder').style.display = 'none';
       const img = document.getElementById('previewImg');
-      img.src = S.imageDataUrl;
+      img.src = S.imagePreviewUrl;
       img.style.display = 'block';
-      document.getElementById('step1Btn').disabled = false;
     };
-    reader.readAsDataURL(file);
+    previewReader.readAsDataURL(file);
+    const { dataUrl, width, height } = await resizeImage(file, 1024);
+    S.imageDataUrl = dataUrl;
+    S.imageWidth = width;
+    S.imageHeight = height;
+    const sizeKB = Math.round(dataUrl.length * 0.75 / 1024);
+    const info = document.getElementById('fileInfo');
+    info.textContent = `✓ Photo ready — ${width}×${height}px, ~${sizeKB}KB`;
+    info.style.display = 'block';
+    document.getElementById('step1Btn').disabled = false;
   }
 
   function pickStyle(el, val) {
@@ -242,7 +295,8 @@
     const ln = document.getElementById('lastName').value.trim();
     const em = document.getElementById('email').value.trim();
     const ph = document.getElementById('phone').value.trim();
-    document.getElementById('step3Btn').disabled = !(fn && ln && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em) && ph.length >= 7);
+    document.getElementById('step3Btn').disabled =
+      !(fn && ln && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em) && ph.length >= 7);
   }
 
   function setProgress(pct, step, msg) {
@@ -252,6 +306,22 @@
   }
 
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  function showResult(outputUrl) {
+    document.getElementById('generatingCard').style.display = 'none';
+    document.getElementById('resultCard').style.display = 'block';
+    document.getElementById('beforeImg').src = S.imagePreviewUrl || S.imageDataUrl;
+    document.getElementById('afterImg').src = outputUrl;
+    document.getElementById('resultSummary').innerHTML =
+      `<strong>Style:</strong> ${S.style} &nbsp;|&nbsp; <strong>Color:</strong> ${S.color}`;
+    document.getElementById('resultEmail').textContent = S.lead.email;
+  }
+
+  function showError(msg) {
+    document.getElementById('generatingCard').style.display = 'none';
+    document.getElementById('errorCard').style.display = 'block';
+    document.getElementById('errorMsg').textContent = msg;
+  }
 
   async function submit() {
     S.lead = {
@@ -266,63 +336,91 @@
     document.getElementById('errorCard').style.display = 'none';
 
     try {
-      // Save lead
-      await fetch('/api/lead', {
+      fetch('/api/lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...S.lead, roofStyle: S.style, roofColor: S.color, timestamp: new Date().toISOString() })
-      });
+      }).catch(() => {});
 
-      // Step 1: Analyze roof with GPT-4o
-      setProgress(15, 'Step 1 of 3 — Roof detection', 'Analyzing your home photo and detecting the roof area...');
+      setProgress(10, 'Step 1 of 3 — Roof detection', 'Analyzing your home and mapping the roof outline...');
       const base64 = S.imageDataUrl.split(',')[1];
       const analyzeRes = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64, mimeType: S.imageFile.type })
+        body: JSON.stringify({ imageBase64: base64, mimeType: 'image/jpeg' })
       });
-      if (!analyzeRes.ok) throw new Error('Roof analysis failed: ' + await analyzeRes.text());
-      const analysis = await analyzeRes.json();
 
-      // Step 2: Build inpaint prompt
-      setProgress(40, 'Step 2 of 3 — Building prompt', `Crafting instructions for your ${S.color} ${S.style} roof...`);
-      await sleep(500);
-      const prompt = `Replace only the roof of this house with a ${S.color.toLowerCase()} ${S.style.toLowerCase()} metal roof. The roof must be photorealistic, perfectly fitted to the exact same roof shape and pitch as described: ${analysis.roofDescription || ''}. Preserve completely unchanged: ${analysis.preserveElements || 'all windows, doors, siding, landscaping, sky, and surroundings'}. The metal panels should have realistic texture, highlights, and shading. Do not alter any part of the image except the roof surface itself.`;
+      let analysis = {};
+      if (analyzeRes.ok) {
+        analysis = await analyzeRes.json();
+      } else {
+        console.warn('Analyze warning:', await analyzeRes.json().catch(() => ({})));
+      }
 
-      // Step 3: Generate with Replicate
-      setProgress(55, 'Step 3 of 3 — Generating image', 'Running AI inpainting — replacing only the roof...');
+      setProgress(40, 'Step 2 of 3 — Preparing generation', `Building your ${S.color} ${S.style} roof...`);
+      await sleep(300);
+
+      const prompt = `Replace only the roof of this house with a photorealistic ${S.color.toLowerCase()} ${S.style.toLowerCase()} metal roof. ${analysis.roofDescription ? 'The roof is: ' + analysis.roofDescription + '.' : ''} Keep completely unchanged: ${analysis.preserveElements || 'all windows, doors, siding, landscaping, driveway, and sky'}. The metal panels must have realistic texture, highlights, and shading consistent with the photo lighting. Do not change anything except the roof surface itself.`;
+
+      setProgress(55, 'Step 3 of 3 — Generating image', 'AI is rendering your new roof — this takes about 30 seconds...');
+
       const genRes = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageDataUrl: S.imageDataUrl, prompt })
+        body: JSON.stringify({
+          imageDataUrl: S.imageDataUrl,
+          prompt,
+          roofPolygon: analysis.roofPolygon || null,
+          imageWidth: S.imageWidth,
+          imageHeight: S.imageHeight
+        })
       });
-      if (!genRes.ok) throw new Error('Generation failed: ' + await genRes.text());
-      const { predictionId } = await genRes.json();
 
-      // Poll for result
-      for (let i = 0; i < 60; i++) {
-        await sleep(2000);
-        const pollRes = await fetch(`/api/poll?id=${predictionId}`);
-        const pollData = await pollRes.json();
-        if (pollData.status === 'succeeded') {
-          setProgress(100, 'Complete', 'Your roof preview is ready!');
-          await sleep(400);
-          document.getElementById('generatingCard').style.display = 'none';
-          document.getElementById('resultCard').style.display = 'block';
-          document.getElementById('beforeImg').src = S.imageDataUrl;
-          document.getElementById('afterImg').src = pollData.output;
-          document.getElementById('resultSummary').innerHTML = `<strong>Style:</strong> ${S.style} &nbsp;|&nbsp; <strong>Color:</strong> ${S.color}`;
-          document.getElementById('resultEmail').textContent = S.lead.email;
-          return;
-        }
-        if (pollData.status === 'failed') throw new Error('Image generation failed: ' + (pollData.error || 'unknown'));
-        setProgress(55 + Math.min(40, i * 1.2), 'Step 3 of 3 — Generating image', `AI is rendering your roof... (${i * 2}s)`);
+      if (!genRes.ok) {
+        const errData = await genRes.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errData.error || 'Image generation failed');
       }
-      throw new Error('Timed out. Please try again.');
+
+      const genData = await genRes.json();
+
+      if (genData.status === 'succeeded' && genData.output) {
+        setProgress(100, 'Complete', 'Your roof preview is ready!');
+        await sleep(300);
+        return showResult(genData.output);
+      }
+
+      if (!genData.predictionId) throw new Error('No prediction ID returned. Please try again.');
+
+      let pollFailures = 0;
+      for (let i = 0; i < 90; i++) {
+        await sleep(2000);
+        let pollData;
+        try {
+          const pollRes = await fetch(`/api/poll?id=${genData.predictionId}`);
+          pollData = await pollRes.json();
+        } catch (pollErr) {
+          pollFailures++;
+          if (pollFailures >= 3) throw new Error('Lost connection while waiting for your image. Please try again.');
+          continue;
+        }
+        if (pollData.status === 'succeeded' && pollData.output) {
+          setProgress(100, 'Complete', 'Your roof preview is ready!');
+          await sleep(300);
+          return showResult(pollData.output);
+        }
+        if (pollData.status === 'failed') throw new Error('The AI image generation failed. Please try again.');
+        const elapsed = i * 2;
+        setProgress(
+          55 + Math.min(40, i * 0.8),
+          'Step 3 of 3 — Generating image',
+          elapsed < 20 ? 'AI is rendering your new roof...' :
+          elapsed < 40 ? 'Still working — almost there...' :
+          `Still rendering (${elapsed}s) — complex roofs take a bit longer...`
+        );
+      }
+      throw new Error('Generation timed out. Please try again — it usually works on retry.');
     } catch (err) {
-      document.getElementById('generatingCard').style.display = 'none';
-      document.getElementById('errorCard').style.display = 'block';
-      document.getElementById('errorMsg').textContent = err.message;
+      showError(err.message);
     }
   }
 </script>
