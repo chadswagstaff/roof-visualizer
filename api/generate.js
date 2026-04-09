@@ -9,19 +9,19 @@ export default async function handler(req, res) {
   if (!imageDataUrl || !prompt) return res.status(400).json({ error: 'Missing imageDataUrl or prompt' });
 
   try {
-    const response = await fetch('https://api.replicate.com/v1/models/stability-ai/stable-diffusion-inpainting/predictions', {
+    const response = await fetch('https://api.replicate.com/v1/models/ideogram-ai/ideogram-v2/predictions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.REPLICATE_API_TOKEN}`
+        'Authorization': `Bearer ${process.env.REPLICATE_API_TOKEN}`,
+        'Prefer': 'wait'
       },
       body: JSON.stringify({
         input: {
           prompt,
           image: imageDataUrl,
-          num_inference_steps: 25,
-          guidance_scale: 7.5,
-          strength: 0.85
+          magic_prompt_option: 'Off',
+          style_type: 'Realistic'
         }
       })
     });
@@ -32,6 +32,13 @@ export default async function handler(req, res) {
     }
 
     const prediction = await response.json();
+
+    // If completed immediately
+    if (prediction.status === 'succeeded') {
+      const output = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+      return res.status(200).json({ predictionId: prediction.id, output, status: 'succeeded' });
+    }
+
     return res.status(200).json({ predictionId: prediction.id, pollUrl: prediction.urls?.get });
   } catch (err) {
     return res.status(500).json({ error: err.message });
