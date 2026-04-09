@@ -1,3 +1,5 @@
+export const config = { maxDuration: 10 };
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -13,10 +15,7 @@ export default async function handler(req, res) {
     timestamp: timestamp || new Date().toISOString()
   }));
 
-  // To send to a CRM or email, add your webhook here:
-  // e.g. HubSpot, Mailchimp, or just email via SendGrid
-  // Example (uncomment and fill in):
-  //
+  // Uncomment to forward leads to Zapier, HubSpot, email, etc:
   // await fetch('https://hooks.zapier.com/hooks/catch/YOUR_HOOK_ID/', {
   //   method: 'POST',
   //   headers: { 'Content-Type': 'application/json' },
