@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>See Your New Metal Roof</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; color: #1a1a18; min-height: 100vh; }
+    .app { max-width: 680px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+    header { text-align: center; margin-bottom: 2rem; }
+    header h1 { font-size: 26px; font-weight: 600; margin-bottom: 6px; }
+    header p { font-size: 15px; color: #5f5e5a; }
+    .step-indicator { display: flex; align-items: center; margin-bottom: 2rem; }
+    .step-dot { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid #d3d1c7; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #888780; flex-shrink: 0; transition: all 0.3s; }
+    .step-dot.active { background: #185FA5; border-color: #185FA5; color: white; }
+    .step-dot.done { background: #3B6D11; border-color: #3B6D11; color: white; }
+    .step-line { flex: 1; height: 1px; background: #d3d1c7; transition: background 0.3s; }
+    .step-line.done { background: #3B6D11; }
+    .card { background: white; border: 1px solid #e8e7e2; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card h2 { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+    .card > p { font-size: 13px; color: #5f5e5a; margin-bottom: 1.25rem; line-height: 1.5; }
+    .upload-zone { border: 2px dashed #d3d1c7; border-radius: 10px; padding: 2.5rem 1rem; text-align: center; cursor: pointer; transition: all 0.2s; background: #fafaf8; }
+    .upload-zone:hover { border-color: #185FA5; background: #f0f6fd; }
+    .upload-zone.has-image { border-style: solid; border-color: #3B6D11; padding: 0.5rem; background: white; }
+    .upload-zone img { width: 100%; border-radius: 8px; display: block; max-height: 300px; object-fit: cover; }
+    .upload-icon { font-size: 32px; margin-bottom: 8px; }
+    .upload-zone .upload-text { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+    .upload-zone .upload-sub { font-size: 12px; color: #888780; }
+    .section-label { font-size: 11px; font-weight: 600; color: #888780; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+    .style-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1.5rem; }
+    .style-option { border: 1px solid #e8e7e2; border-radius: 10px; padding: 0.875rem 0.5rem; text-align: center; cursor: pointer; transition: all 0.2s; background: #fafaf8; }
+    .style-option:hover { border-color: #185FA5; }
+    .style-option.selected { border: 2px solid #185FA5; background: #f0f6fd; }
+    .style-option .s-icon { font-size: 22px; margin-bottom: 5px; }
+    .style-option .s-label { font-size: 12px; font-weight: 600; color: #1a1a18; }
+    .style-option .s-sub { font-size: 11px; color: #888780; margin-top: 2px; }
+    .color-grid { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .color-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .color-swatch { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; outline: 2px solid transparent; }
+    .color-swatch:hover { transform: scale(1.12); }
+    .color-swatch.selected { outline: 2px solid #185FA5; outline-offset: 3px; }
+    .color-name { font-size: 10px; color: #888780; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    label { display: block; font-size: 12px; font-weight: 500; color: #5f5e5a; margin-bottom: 4px; }
+    input[type=text], input[type=email], input[type=tel] { width: 100%; height: 40px; padding: 0 12px; border: 1px solid #d3d1c7; border-radius: 8px; background: white; color: #1a1a18; font-size: 14px; font-family: inherit; transition: border-color 0.2s; }
+    input:focus { outline: none; border-color: #185FA5; box-shadow: 0 0 0 3px rgba(24,95,165,0.12); }
+    .btn-row { display: flex; gap: 8px; }
+    .btn-primary { flex: 1; height: 46px; background: #185FA5; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+    .btn-primary:hover { background: #0C447C; }
+    .btn-primary:disabled { background: #d3d1c7; color: #888780; cursor: not-allowed; }
+    .btn-back { height: 46px; padding: 0 18px; background: white; color: #5f5e5a; border: 1px solid #d3d1c7; border-radius: 8px; font-size: 14px; cursor: pointer; font-family: inherit; flex-shrink: 0; }
+    .btn-back:hover { background: #fafaf8; }
+    .config-box { background: #f5f5f3; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #5f5e5a; margin-bottom: 1.25rem; line-height: 1.8; }
+    .config-box strong { color: #1a1a18; font-weight: 600; }
+    .progress-bar { height: 6px; background: #e8e7e2; border-radius: 3px; margin: 1rem 0 0.5rem; overflow: hidden; }
+    .progress-fill { height: 100%; background: #185FA5; border-radius: 3px; transition: width 0.6s ease; }
+    .status-label { font-size: 12px; color: #888780; }
+    .status-msg { font-size: 14px; color: #1a1a18; margin-bottom: 6px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1rem; }
+    .two-col img { width: 100%; border-radius: 8px; display: block; border: 1px solid #e8e7e2; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+    .badge-success { background: #eaf3de; color: #27500A; }
+    .disclaimer { font-size: 11px; color: #888780; margin-top: 12px; line-height: 1.5; }
+    .error-card { border-color: #f09595 !important; }
+    .error-card h2 { color: #A32D2D; }
+    @media (max-width: 480px) {
+      .style-grid { grid-template-columns: repeat(2, 1fr); }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-grid .full { grid-column: 1; }
+      .two-col { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>See your new metal roof</h1>
+    <p>Upload a photo of your home and preview your new roof in seconds.</p>
+  </header>
+
+  <div class="step-indicator">
+    <div class="step-dot active" id="dot1">1</div>
+    <div class="step-line" id="line1"></div>
+    <div class="step-dot" id="dot2">2</div>
+    <div class="step-line" id="line2"></div>
+    <div class="step-dot" id="dot3">3</div>
+    <div class="step-line" id="line3"></div>
+    <div class="step-dot" id="dot4">4</div>
+  </div>
+
+  <!-- Step 1 -->
+  <div id="step1">
+    <div class="card">
+      <h2>Upload your home photo</h2>
+      <p>Use a clear front-facing photo where the roof is visible.</p>
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <div id="uploadPlaceholder">
+          <div class="upload-icon">🏠</div>
+          <div class="upload-text">Click to upload your home photo</div>
+          <div class="upload-sub">JPG or PNG, up to 10MB</div>
+        </div>
+        <img id="previewImg" style="display:none;" alt="Your home" />
+      </div>
+      <input type="file" id="fileInput" accept="image/jpeg,image/png" style="display:none;" onchange="handleUpload(event)" />
+    </div>
+    <button class="btn-primary" id="step1Btn" disabled onclick="goTo(2)">Continue — choose your roof →</button>
+  </div>
+
+  <!-- Step 2 -->
+  <div id="step2" style="display:none;">
+    <div class="card">
+      <h2>Choose your roof style &amp; color</h2>
+      <p>Select the metal panel profile and color that fits your home.</p>
+      <div class="section-label">Panel style</div>
+      <div class="style-grid">
+        <div class="style-option" onclick="pickStyle(this,'Standing Seam')"><div class="s-icon">▐</div><div class="s-label">Standing seam</div><div class="s-sub">Clean vertical lines</div></div>
+        <div class="style-option" onclick="pickStyle(this,'Metal Shingle')"><div class="s-icon">▦</div><div class="s-label">Metal shingle</div><div class="s-sub">Classic look</div></div>
+        <div class="style-option" onclick="pickStyle(this,'Corrugated Metal')"><div class="s-icon">≋</div><div class="s-label">Corrugated</div><div class="s-sub">Industrial style</div></div>
+        <div class="style-option" onclick="pickStyle(this,'Metal Shake')"><div class="s-icon">▲</div><div class="s-label">Metal shake</div><div class="s-sub">Cedar look</div></div>
+        <div class="style-option" onclick="pickStyle(this,'Stone-Coated Steel')"><div class="s-icon">◆</div><div class="s-label">Stone-coated</div><div class="s-sub">Textured finish</div></div>
+        <div class="style-option" onclick="pickStyle(this,'Ribbed Panel')"><div class="s-icon">☰</div><div class="s-label">Ribbed panel</div><div class="s-sub">Economy profile</div></div>
+      </div>
+      <div class="section-label">Color</div>
+      <div class="color-grid">
+        <div class="color-item"><div class="color-swatch" style="background:#2C2C2A;" onclick="pickColor(this,'Charcoal')"></div><div class="color-name">Charcoal</div></div>
+        <div class="color-item"><div class="color-swatch" style="background:#888780;" onclick="pickColor(this,'Slate Gray')"></div><div class="color-name">Slate gray</div></div>
+        <div class="color-item"><div class="color-swatch" style="background:#D3D1C7; border: 1px solid #b4b2a9;" onclick="pickColor(this,'Light Gray')"></div><div class="color-name">Light gray</div></div>
+        <div class="color-item"><div class="color-swatch" style="background:#993C1D;" onclick="pickColor(this,'Brick Red')"></div><div class="color-name">Brick red</div></div>
+        <div class="color-item"><div class="color-swatch" style="background:#3B6D11;" onclick="pickColor(this,'Forest Green')"></div><div class="color-name">Forest green</div></div>
+        <div class="color-item"><div class="color-swatch" style="background:#185FA5;" onclick="pickColor(this,'Steel Blue')"></div><div class="color-name">Steel blue</div></div>
+        <div class="color-item"><div class="color-swatch" style="background:#854F0B;" onclick="pickColor(this,'Bronze')"></div><div class="color-name">Bronze</div></div>
+        <div class="color-item"><div class="color-swatch" style="background:#E8E7E2; border: 1px solid #b4b2a9;" onclick="pickColor(this,'Galvalume')"></div><div class="color-name">Galvalume</div></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="goTo(1)">← Back</button>
+      <button class="btn-primary" id="step2Btn" disabled onclick="goTo(3)">Continue — enter your info →</button>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div id="step3" style="display:none;">
+    <div class="card">
+      <h2>Get your free preview</h2>
+      <p>Enter your info and we'll generate your custom roof preview. A specialist will follow up with a free quote.</p>
+      <div class="config-box" id="configBox"></div>
+      <div class="form-grid">
+        <div><label>First name</label><input type="text" id="firstName" placeholder="Jane" oninput="validateStep3()"></div>
+        <div><label>Last name</label><input type="text" id="lastName" placeholder="Smith" oninput="validateStep3()"></div>
+        <div class="full"><label>Email address</label><input type="email" id="email" placeholder="jane@example.com" oninput="validateStep3()"></div>
+        <div class="full"><label>Phone number</label><input type="tel" id="phone" placeholder="(555) 000-0000" oninput="validateStep3()"></div>
+      </div>
+      <p class="disclaimer">By submitting, you agree to be contacted about your roofing project. We never sell your information.</p>
+    </div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="goTo(2)">← Back</button>
+      <button class="btn-primary" id="step3Btn" disabled onclick="submit()">Generate my roof preview →</button>
+    </div>
+  </div>
+
+  <!-- Step 4 -->
+  <div id="step4" style="display:none;">
+    <div class="card" id="generatingCard">
+      <h2>Generating your preview...</h2>
+      <p id="statusMsg">Analyzing your home photo and detecting the roof area...</p>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <p class="status-label" id="statusStep">Step 1 of 3 — Roof detection</p>
+    </div>
+    <div class="card" id="resultCard" style="display:none;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+        <h2 style="margin-bottom:0;">Your roof preview</h2>
+        <span class="badge badge-success">✓ Ready</span>
+      </div>
+      <div class="two-col">
+        <div><div class="section-label" style="margin-bottom:6px;">Before</div><img id="beforeImg" alt="Before" /></div>
+        <div><div class="section-label" style="margin-bottom:6px;">After</div><img id="afterImg" alt="After" /></div>
+      </div>
+      <div class="config-box" id="resultSummary"></div>
+      <p style="font-size:13px; color:#5f5e5a; line-height:1.6;">A roofing specialist will reach out to <strong id="resultEmail"></strong> with a personalized quote. Questions? Call us anytime.</p>
+    </div>
+    <div class="card error-card" id="errorCard" style="display:none;">
+      <h2>Something went wrong</h2>
+      <p id="errorMsg" style="margin-bottom:1rem;">Please try again.</p>
+      <button class="btn-back" onclick="goTo(1)">Start over</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const S = { step: 1, imageFile: null, imageDataUrl: null, style: null, color: null, lead: {} };
+
+  function goTo(n) {
+    for (let i = 1; i <= 4; i++) {
+      document.getElementById('step' + i).style.display = i === n ? 'block' : 'none';
+      const d = document.getElementById('dot' + i);
+      d.className = 'step-dot' + (i < n ? ' done' : i === n ? ' active' : '');
+      if (i < 4) document.getElementById('line' + i).className = 'step-line' + (i < n ? ' done' : '');
+    }
+    S.step = n;
+    if (n === 3) document.getElementById('configBox').innerHTML = `<strong>Style:</strong> ${S.style} &nbsp;|&nbsp; <strong>Color:</strong> ${S.color}`;
+  }
+
+  function handleUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    S.imageFile = file;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      S.imageDataUrl = ev.target.result;
+      document.getElementById('uploadZone').classList.add('has-image');
+      document.getElementById('uploadPlaceholder').style.display = 'none';
+      const img = document.getElementById('previewImg');
+      img.src = S.imageDataUrl;
+      img.style.display = 'block';
+      document.getElementById('step1Btn').disabled = false;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function pickStyle(el, val) {
+    document.querySelectorAll('.style-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    S.style = val;
+    checkStep2();
+  }
+
+  function pickColor(el, val) {
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+    el.classList.add('selected');
+    S.color = val;
+    checkStep2();
+  }
+
+  function checkStep2() {
+    document.getElementById('step2Btn').disabled = !(S.style && S.color);
+  }
+
+  function validateStep3() {
+    const fn = document.getElementById('firstName').value.trim();
+    const ln = document.getElementById('lastName').value.trim();
+    const em = document.getElementById('email').value.trim();
+    const ph = document.getElementById('phone').value.trim();
+    document.getElementById('step3Btn').disabled = !(fn && ln && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em) && ph.length >= 7);
+  }
+
+  function setProgress(pct, step, msg) {
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('statusStep').textContent = step;
+    document.getElementById('statusMsg').textContent = msg;
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function submit() {
+    S.lead = {
+      firstName: document.getElementById('firstName').value.trim(),
+      lastName: document.getElementById('lastName').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      phone: document.getElementById('phone').value.trim()
+    };
+    goTo(4);
+    document.getElementById('generatingCard').style.display = 'block';
+    document.getElementById('resultCard').style.display = 'none';
+    document.getElementById('errorCard').style.display = 'none';
+
+    try {
+      // Save lead
+      await fetch('/api/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...S.lead, roofStyle: S.style, roofColor: S.color, timestamp: new Date().toISOString() })
+      });
+
+      // Step 1: Analyze roof with GPT-4o
+      setProgress(15, 'Step 1 of 3 — Roof detection', 'Analyzing your home photo and detecting the roof area...');
+      const base64 = S.imageDataUrl.split(',')[1];
+      const analyzeRes = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64, mimeType: S.imageFile.type })
+      });
+      if (!analyzeRes.ok) throw new Error('Roof analysis failed: ' + await analyzeRes.text());
+      const analysis = await analyzeRes.json();
+
+      // Step 2: Build inpaint prompt
+      setProgress(40, 'Step 2 of 3 — Building prompt', `Crafting instructions for your ${S.color} ${S.style} roof...`);
+      await sleep(500);
+      const prompt = `Replace only the roof of this house with a ${S.color.toLowerCase()} ${S.style.toLowerCase()} metal roof. The roof must be photorealistic, perfectly fitted to the exact same roof shape and pitch as described: ${analysis.roofDescription || ''}. Preserve completely unchanged: ${analysis.preserveElements || 'all windows, doors, siding, landscaping, sky, and surroundings'}. The metal panels should have realistic texture, highlights, and shading. Do not alter any part of the image except the roof surface itself.`;
+
+      // Step 3: Generate with Replicate
+      setProgress(55, 'Step 3 of 3 — Generating image', 'Running AI inpainting — replacing only the roof...');
+      const genRes = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageDataUrl: S.imageDataUrl, prompt })
+      });
+      if (!genRes.ok) throw new Error('Generation failed: ' + await genRes.text());
+      const { predictionId } = await genRes.json();
+
+      // Poll for result
+      for (let i = 0; i < 60; i++) {
+        await sleep(2000);
+        const pollRes = await fetch(`/api/poll?id=${predictionId}`);
+        const pollData = await pollRes.json();
+        if (pollData.status === 'succeeded') {
+          setProgress(100, 'Complete', 'Your roof preview is ready!');
+          await sleep(400);
+          document.getElementById('generatingCard').style.display = 'none';
+          document.getElementById('resultCard').style.display = 'block';
+          document.getElementById('beforeImg').src = S.imageDataUrl;
+          document.getElementById('afterImg').src = pollData.output;
+          document.getElementById('resultSummary').innerHTML = `<strong>Style:</strong> ${S.style} &nbsp;|&nbsp; <strong>Color:</strong> ${S.color}`;
+          document.getElementById('resultEmail').textContent = S.lead.email;
+          return;
+        }
+        if (pollData.status === 'failed') throw new Error('Image generation failed: ' + (pollData.error || 'unknown'));
+        setProgress(55 + Math.min(40, i * 1.2), 'Step 3 of 3 — Generating image', `AI is rendering your roof... (${i * 2}s)`);
+      }
+      throw new Error('Timed out. Please try again.');
+    } catch (err) {
+      document.getElementById('generatingCard').style.display = 'none';
+      document.getElementById('errorCard').style.display = 'block';
+      document.getElementById('errorMsg').textContent = err.message;
+    }
+  }
+</script>
+</body>
+</html>
