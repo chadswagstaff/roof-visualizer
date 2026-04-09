@@ -1,3 +1,5 @@
+export const config = { maxDuration: 30 };
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -13,8 +15,8 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
-      const err = await response.text();
-      return res.status(500).json({ error: 'Replicate poll error: ' + err });
+      const errText = await response.text();
+      return res.status(500).json({ error: 'Replicate poll error: ' + errText });
     }
 
     const data = await response.json();
@@ -22,8 +24,12 @@ export default async function handler(req, res) {
       ? (Array.isArray(data.output) ? data.output[0] : data.output)
       : null;
 
-    return res.status(200).json({ status: data.status, output, error: data.error });
+    return res.status(200).json({
+      status: data.status,
+      output,
+      error: data.error || null
+    });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Poll failed: ' + err.message });
   }
 }
