@@ -1,7 +1,12 @@
 {
   "version": 2,
-  "buildCommand": "",
   "outputDirectory": "public",
+  "functions": {
+    "api/generate.js": { "maxDuration": 60 },
+    "api/analyze.js": { "maxDuration": 30 },
+    "api/poll.js": { "maxDuration": 30 },
+    "api/lead.js": { "maxDuration": 10 }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" }
   ]
