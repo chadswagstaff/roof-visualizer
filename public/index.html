@@ -307,6 +307,30 @@
 
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+  function createRoofMask(roofPolygon, width, height) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    // White = preserve, black = inpaint (replace with new roof)
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = 'black';
+    if (roofPolygon && roofPolygon.length >= 3) {
+      ctx.beginPath();
+      ctx.moveTo(roofPolygon[0].x * width / 100, roofPolygon[0].y * height / 100);
+      for (let i = 1; i < roofPolygon.length; i++) {
+        ctx.lineTo(roofPolygon[i].x * width / 100, roofPolygon[i].y * height / 100);
+      }
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      // Fallback: treat top 45% of image as roof area
+      ctx.fillRect(0, 0, width, Math.round(height * 0.45));
+    }
+    return canvas.toDataURL('image/png');
+  }
+
   function showResult(outputUrl) {
     document.getElementById('generatingCard').style.display = 'none';
     document.getElementById('resultCard').style.display = 'block';
@@ -362,6 +386,8 @@
 
       const prompt = `Replace only the roof of this house with a photorealistic ${S.color.toLowerCase()} ${S.style.toLowerCase()} metal roof. ${analysis.roofDescription ? 'The roof is: ' + analysis.roofDescription + '.' : ''} Keep completely unchanged: ${analysis.preserveElements || 'all windows, doors, siding, landscaping, driveway, and sky'}. The metal panels must have realistic texture, highlights, and shading consistent with the photo lighting. Do not change anything except the roof surface itself.`;
 
+      const maskDataUrl = createRoofMask(analysis.roofPolygon || null, S.imageWidth, S.imageHeight);
+
       setProgress(55, 'Step 3 of 3 — Generating image', 'AI is rendering your new roof — this takes about 30 seconds...');
 
       const genRes = await fetch('/api/generate', {
@@ -369,10 +395,8 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageDataUrl: S.imageDataUrl,
-          prompt,
-          roofPolygon: analysis.roofPolygon || null,
-          imageWidth: S.imageWidth,
-          imageHeight: S.imageHeight
+          maskDataUrl,
+          prompt
         })
       });
 
