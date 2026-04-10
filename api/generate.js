@@ -22,8 +22,8 @@ export default async function handler(req, res) {
     const input = {
       prompt,
       image: imageDataUrl,
-      magic_prompt_option: 'OFF',
-      style_type: 'REALISTIC',
+      magic_prompt_option: 'Off',
+      style_type: 'Realistic',
     };
 
     const response = await fetch('https://api.replicate.com/v1/models/ideogram-ai/ideogram-v2/predictions', {
