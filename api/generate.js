@@ -14,13 +14,17 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { imageDataUrl, maskDataUrl, prompt } = req.body;
+  const { imageDataUrl, prompt } = req.body;
   if (!imageDataUrl) return res.status(400).json({ error: 'Missing imageDataUrl' });
   if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
 
   try {
-    const input = { prompt, image: imageDataUrl };
-    if (maskDataUrl) input.mask = maskDataUrl;
+    const input = {
+      prompt,
+      image: imageDataUrl,
+      magic_prompt_option: 'OFF',
+      style_type: 'REALISTIC',
+    };
 
     const response = await fetch('https://api.replicate.com/v1/models/ideogram-ai/ideogram-v2/predictions', {
       method: 'POST',
