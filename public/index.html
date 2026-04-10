@@ -432,7 +432,7 @@
           await sleep(300);
           return showResult(pollData.output);
         }
-        if (pollData.status === 'failed') throw new Error('The AI image generation failed. Please try again.');
+        if (pollData.status === 'failed') throw new Error(pollData.error || 'The AI image generation failed. Please try again.');
         const elapsed = i * 2;
         setProgress(
           55 + Math.min(40, i * 0.8),
