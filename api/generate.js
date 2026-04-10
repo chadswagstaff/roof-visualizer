@@ -24,6 +24,7 @@ export default async function handler(req, res) {
       prompt,
       image: imageDataUrl,
       mask: maskDataUrl,
+      negative_prompt: 'original roof, old roof, unchanged roof, asphalt shingles, wood shingles, same material, subtle, blended, no change, identical, cartoon, illustration, blurry, low quality',
       magic_prompt_option: 'Off',
       style_type: 'Realistic',
     };

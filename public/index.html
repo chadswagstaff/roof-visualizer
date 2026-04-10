@@ -180,6 +180,10 @@
         <div><div class="section-label" style="margin-bottom:6px;">Before</div><img id="beforeImg" alt="Before" /></div>
         <div><div class="section-label" style="margin-bottom:6px;">After</div><img id="afterImg" alt="After" /></div>
       </div>
+      <div id="debugMask" style="display:none; margin-top:12px;">
+        <div class="section-label" style="margin-bottom:6px;">Debug: Mask (black = replaced area)</div>
+        <img id="debugMaskImg" style="width:100%; border-radius:8px; border:1px solid #e8e7e2;" alt="Mask" />
+      </div>
       <div class="config-box" id="resultSummary"></div>
       <p style="font-size:13px; color:#5f5e5a; line-height:1.6; margin-bottom:1rem;">A roofing specialist will reach out to <strong id="resultEmail"></strong> with a personalized quote.</p>
       <button class="btn-back" onclick="goTo(1)" style="font-size:13px;">Try another photo</button>
@@ -199,6 +203,7 @@
     imageFile: null,
     imageDataUrl: null,
     imagePreviewUrl: null,
+    maskDataUrl: null,
     imageWidth: 1024,
     imageHeight: 768,
     style: null,
@@ -317,10 +322,17 @@
     ctx.fillRect(0, 0, width, height);
     ctx.fillStyle = 'black';
     if (roofPolygon && roofPolygon.length >= 3) {
+      // Expand polygon 10% outward from centroid so no roof pixels are missed
+      const cx = roofPolygon.reduce((s, p) => s + p.x, 0) / roofPolygon.length;
+      const cy = roofPolygon.reduce((s, p) => s + p.y, 0) / roofPolygon.length;
+      const expanded = roofPolygon.map(p => ({
+        x: Math.max(0, Math.min(100, cx + (p.x - cx) * 1.1)),
+        y: Math.max(0, Math.min(100, cy + (p.y - cy) * 1.1))
+      }));
       ctx.beginPath();
-      ctx.moveTo(roofPolygon[0].x * width / 100, roofPolygon[0].y * height / 100);
-      for (let i = 1; i < roofPolygon.length; i++) {
-        ctx.lineTo(roofPolygon[i].x * width / 100, roofPolygon[i].y * height / 100);
+      ctx.moveTo(expanded[0].x * width / 100, expanded[0].y * height / 100);
+      for (let i = 1; i < expanded.length; i++) {
+        ctx.lineTo(expanded[i].x * width / 100, expanded[i].y * height / 100);
       }
       ctx.closePath();
       ctx.fill();
@@ -339,6 +351,10 @@
     document.getElementById('resultSummary').innerHTML =
       `<strong>Style:</strong> ${S.style} &nbsp;|&nbsp; <strong>Color:</strong> ${S.color}`;
     document.getElementById('resultEmail').textContent = S.lead.email;
+    if (S.maskDataUrl) {
+      document.getElementById('debugMaskImg').src = S.maskDataUrl;
+      document.getElementById('debugMask').style.display = 'block';
+    }
   }
 
   function showError(msg) {
@@ -384,9 +400,10 @@
       setProgress(40, 'Step 2 of 3 — Preparing generation', `Building your ${S.color} ${S.style} roof...`);
       await sleep(300);
 
-      const prompt = `Replace only the roof of this house with a photorealistic ${S.color.toLowerCase()} ${S.style.toLowerCase()} metal roof. ${analysis.roofDescription ? 'The roof is: ' + analysis.roofDescription + '.' : ''} Keep completely unchanged: ${analysis.preserveElements || 'all windows, doors, siding, landscaping, driveway, and sky'}. The metal panels must have realistic texture, highlights, and shading consistent with the photo lighting. Do not change anything except the roof surface itself.`;
+      const prompt = `A house with a brand new ${S.color.toLowerCase()} ${S.style.toLowerCase()} metal roof. The roof has been completely replaced with new ${S.color.toLowerCase()} metal panels. ${analysis.roofDescription ? 'Roof shape: ' + analysis.roofDescription + '.' : ''} The metal panels have sharp, realistic texture with natural highlights and shadows matching the photo lighting. Everything else in the photo is completely identical and unchanged: ${analysis.preserveElements || 'walls, windows, doors, siding, landscaping, driveway, sky'}.`;
 
       const maskDataUrl = createRoofMask(analysis.roofPolygon || null, S.imageWidth, S.imageHeight);
+      S.maskDataUrl = maskDataUrl;
 
       setProgress(55, 'Step 3 of 3 — Generating image', 'AI is rendering your new roof — this takes about 30 seconds...');
 
