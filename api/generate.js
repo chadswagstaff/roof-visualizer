@@ -14,14 +14,16 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { imageDataUrl, prompt } = req.body;
+  const { imageDataUrl, maskDataUrl, prompt } = req.body;
   if (!imageDataUrl) return res.status(400).json({ error: 'Missing imageDataUrl' });
+  if (!maskDataUrl) return res.status(400).json({ error: 'Missing maskDataUrl' });
   if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
 
   try {
     const input = {
       prompt,
       image: imageDataUrl,
+      mask: maskDataUrl,
       magic_prompt_option: 'Off',
       style_type: 'Realistic',
     };
